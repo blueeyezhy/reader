@@ -1,9 +1,6 @@
 'use strict';
 
 const config = require('../config');
-const {
-  checkPermission
-} = require('../models/api');
 const auth = require('../models/auth');
 const {
   assert,
@@ -19,6 +16,30 @@ const Log = require('../models/log');
 const providers = ['github', 'mixin'];
 
 const DEFAULT_AVATAR = 'https://static.press.one/pub/avatar.png';
+
+exports.checkPermission = async (provider, profile) => {
+  const {
+    providerId
+  } = profile;
+  const whitelist = config.auth.whitelist[provider];
+  const isInWhiteList = whitelist && [provider].includes(~~providerId);
+  if (isInWhiteList) {
+    return true;
+  }
+  const hasProviderPermission = await providerPermissionChecker[provider](profile);
+  return hasProviderPermission;
+}
+
+const providerPermissionChecker = {
+  mixin: async profile => {
+    // can check mixin permission
+    return true;
+  },
+  github: async profile => {
+    // can check github permission
+    return true;
+  }
+};
 
 exports.oauthLogin = async ctx => {
   const {
@@ -122,11 +143,9 @@ const handleOauthCallback = async (ctx, provider) => {
   return user;
 };
 
-const login = async (ctx, user, provider) => {
+const login = async (ctx, user, provider, options = {}) => {
   const profile = providerGetter[provider](user);
-  const isNewUser = !(await Profile.isExist(profile.id, {
-    provider
-  }));
+  const isNewUser = !(await Profile.isExist(provider, profile.id));
   let insertedProfile = {};
   if (isNewUser) {
     const userData = {
@@ -143,10 +162,13 @@ const login = async (ctx, user, provider) => {
       provider
     });
     await Wallet.tryCreateWallet(user.id);
+    if (options.registerByToken) {
+      Log.create(user.id, '使用 Token 注册账户');
+    }
     Log.create(user.id, `我被创建了`);
     Log.create(user.id, `钱包不存在，初始化成功`);
   } else {
-    insertedProfile = await Profile.get(profile.id);
+    insertedProfile = await Profile.get(provider, profile.id);
     Log.create(insertedProfile.userId, `登录成功`);
     const {
       userId
@@ -160,15 +182,24 @@ const login = async (ctx, user, provider) => {
     }
   }
 
-  const token = await Token.create({
-    userId: insertedProfile.userId,
-    providerId: insertedProfile.providerId
-  });
+  if (!options.registerByToken) {
+    const token = await Token.create({
+      userId: insertedProfile.userId,
+      providerId: insertedProfile.providerId,
+      profileRaw: provider === 'mixin' ? profile.raw : '',
+      provider
+    });
 
-  ctx.cookies.set(config.auth.tokenKey, token, {
-    expires: new Date('2100-01-01')
-  });
-};
+    ctx.cookies.set(config.auth.tokenKey, token, {
+      expires: new Date('2100-01-01')
+    });
+  };
+
+  const insertedUser = await User.get(insertedProfile.userId);
+  return insertedUser;
+}
+
+exports.login = login;
 
 const providerGetter = {
   github: user => {
@@ -187,7 +218,15 @@ const providerGetter = {
       name: user._json.full_name,
       avatar: user._json.avatar_url || DEFAULT_AVATAR,
       bio: '',
-      raw: JSON.stringify(user._json)
+      raw: JSON.stringify({
+        user_id: user._json.user_id,
+        full_name: user._json.full_name,
+        identity_number: user._json.identity_number,
+        biography: user._json.biography,
+        avatar_url: user._json.avatar_url,
+        session_id: user._json.session_id,
+        code_id: user._json.code_id,
+      })
     };
   }
 };
