@@ -158,7 +158,7 @@ const syncPosts = async (options = {}) => {
       const offset = cachedOffset > 0 ? cachedOffset : 0;
 
       const uris = [];
-      for (const i = 0; i< config.atom.topics.length; i++ ){
+      for (let i = 0; i< config.atom.topics.length; i++ ){
         uris[i] = `${config.atom.postsUrl}?topic=${config.atom.topics[i]}&offset=${offset}&limit=${step}`;
       }
 
