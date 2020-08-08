@@ -27,39 +27,47 @@ const syncAuthors = async (options = {}) => {
       const key = 'AUTHORS_OFFSET';
       const cachedOffset = Number(await Cache.pGet(type, key));
       const offset = cachedOffset > 0 ? cachedOffset : 0;
-      const uri = `${config.atom.authorsUrl}?topic=${
-        config.atom.topic
-      }&offset=${offset < 0 ? 0 : offset}&limit=${step}`;
-      const authors = await request({
-        uri,
-        json: true,
-        timeout: 5000
-      }).promise();
-      const length = authors.length;
-      if (offset === 0 && length === 0) {
-        stop = true;
-        return;
+
+      const uris = [];
+
+      for (let i=0; i<config.atom.topics.length; i++) {
+        uris[i] = `${config.atom.authorsUrl}?topic=${
+            config.atom.topics[i]
+        }&offset=${offset < 0 ? 0 : offset}&limit=${step}`;
       }
-      for (const author of authors) {
-        await Author.upsert(author.user_address, {
-          status: author.status
-        });
+
+      for (const uri of uris) {
+        const authors = await request({
+            uri,
+            json: true,
+            timeout: 5000
+          }).promise();
+          const length = authors.length;
+          if (offset === 0 && length === 0) {
+            stop = true;
+            return;
+          }
+          for (const author of authors) {
+            await Author.upsert(author.user_address, {
+              status: author.status
+            });
+          }
+          let offsetIncrement = 0;
+          if (length < step) {
+            // user 历史记录会改变，更新的 user 会排在最后，所以 offset 每次多抓 10 条，确保能抓到更新的 user 数据
+            if (length === 0) {
+              offsetIncrement = -10;
+            } else if (length > 10) {
+              offsetIncrement = length - 10;
+            }
+            stop = true;
+            done = true;
+          } else {
+            offsetIncrement = length;
+          }
+          const newOffset = offset + offsetIncrement;
+          await Cache.pSet(type, key, newOffset);
       }
-      let offsetIncrement = 0;
-      if (length < step) {
-        // user 历史记录会改变，更新的 user 会排在最后，所以 offset 每次多抓 10 条，确保能抓到更新的 user 数据
-        if (length === 0) {
-          offsetIncrement = -10;
-        } else if (length > 10) {
-          offsetIncrement = length - 10;
-        }
-        stop = true;
-        done = true;
-      } else {
-        offsetIncrement = length;
-      }
-      const newOffset = offset + offsetIncrement;
-      await Cache.pSet(type, key, newOffset);
     } catch (err) {
       console.error(err);
       stop = true;
@@ -148,77 +156,84 @@ const syncPosts = async (options = {}) => {
       const key = 'POSTS_OFFSET';
       const cachedOffset = Number(await Cache.pGet(type, key));
       const offset = cachedOffset > 0 ? cachedOffset : 0;
-      const uri = `${config.atom.postsUrl}?topic=${config.atom.topic}&offset=${offset}&limit=${step}`;
-      const rawPosts = await request({
-        uri,
-        json: true,
-        timeout: 10000
-      }).promise();
-      const length = rawPosts.length;
-      if (offset === 0 && length === 0) {
-        stop = true;
-        continue;
+
+      const uris = [];
+      for (const i = 0; i< config.atom.topics.length; i++ ){
+        uris[i] = `${config.atom.postsUrl}?topic=${config.atom.topics[i]}&offset=${offset}&limit=${step}`;
       }
-      const pickedPosts = await Promise.all(rawPosts.map(pickPost));
-      for (const index of pickedPosts.keys()) {
-        const {
-          author,
-          post,
-          deleted,
-          updatedRId
-        } = pickedPosts[index];
-        if (deleted) {
-          const exists = await Post.getByRId(post.rId);
-          if (exists) {
-            await Post.delete(post.rId);
-            Log.createAnonymity('删除文章', `${post.rId} ${post.title}`);
+
+      for (const uri of uris) {
+        const rawPosts = await request({
+            uri,
+            json: true,
+            timeout: 10000
+          }).promise();
+          const length = rawPosts.length;
+          if (offset === 0 && length === 0) {
+            stop = true;
+            continue;
           }
-          continue;
-        }
-        const insertedAuthor = await Author.getByAddress(author.address);
-        if (!insertedAuthor) {
-          continue;
-        }
-        const exists = await Post.getByRId(post.rId, {
-          ignoreDeleted: true,
-          includeAuthor: false
-        });
-        if (exists) {
-          continue;
-        }
-        await Author.upsert(author.address, {
-          name: author.name,
-          avatar: author.avatar
-        });
-        Log.createAnonymity('同步作者资料', `${author.address} ${author.name}`);
-        await Post.create(post);
-        Log.createAnonymity('同步文章', `${post.rId} ${post.title}`);
-        if (updatedRId) {
-          await replacePost(updatedRId, post.rId);
-          Log.createAnonymity('迁移文章关联数据', `${updatedRId} ${post.rId}`);
-        } else {
-          await notifySubscribers({
-            address: author.address,
-            name: author.name,
-            post
-          });
-        }
+          const pickedPosts = await Promise.all(rawPosts.map(pickPost));
+          for (const index of pickedPosts.keys()) {
+            const {
+              author,
+              post,
+              deleted,
+              updatedRId
+            } = pickedPosts[index];
+            if (deleted) {
+              const exists = await Post.getByRId(post.rId);
+              if (exists) {
+                await Post.delete(post.rId);
+                Log.createAnonymity('删除文章', `${post.rId} ${post.title}`);
+              }
+              continue;
+            }
+            const insertedAuthor = await Author.getByAddress(author.address);
+            if (!insertedAuthor) {
+              continue;
+            }
+            const exists = await Post.getByRId(post.rId, {
+              ignoreDeleted: true,
+              includeAuthor: false
+            });
+            if (exists) {
+              continue;
+            }
+            await Author.upsert(author.address, {
+              name: author.name,
+              avatar: author.avatar
+            });
+            Log.createAnonymity('同步作者资料', `${author.address} ${author.name}`);
+            await Post.create(post);
+            Log.createAnonymity('同步文章', `${post.rId} ${post.title}`);
+            if (updatedRId) {
+              await replacePost(updatedRId, post.rId);
+              Log.createAnonymity('迁移文章关联数据', `${updatedRId} ${post.rId}`);
+            } else {
+              await notifySubscribers({
+                address: author.address,
+                name: author.name,
+                post
+              });
+            }
+          }
+          let offsetIncrement = 0;
+          if (length < step) {
+            // post 历史记录会改变，更新的 post 会排在最后，所以 offset 每次多抓 10 条，确保能抓到更新的 post 数据
+            if (length === 0) {
+              offsetIncrement = -5;
+            } else if (length > 5) {
+              offsetIncrement = length - 5;
+            }
+            stop = true;
+            done = true;
+          } else {
+            offsetIncrement = length;
+          }
+          const newOffset = offset + offsetIncrement;
+          await Cache.pSet(type, key, newOffset);
       }
-      let offsetIncrement = 0;
-      if (length < step) {
-        // post 历史记录会改变，更新的 post 会排在最后，所以 offset 每次多抓 10 条，确保能抓到更新的 post 数据
-        if (length === 0) {
-          offsetIncrement = -5;
-        } else if (length > 5) {
-          offsetIncrement = length - 5;
-        }
-        stop = true;
-        done = true;
-      } else {
-        offsetIncrement = length;
-      }
-      const newOffset = offset + offsetIncrement;
-      await Cache.pSet(type, key, newOffset);
     } catch (err) {
       console.log(err);
       stop = true;
