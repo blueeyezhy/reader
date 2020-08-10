@@ -8,9 +8,13 @@ const {
   Errors
 } = require('../models/validator');
 
-exports.get = async providerId => {
+exports.get = async (provider, providerId) => {
+  assert(provider, Errors.ERR_IS_REQUIRED('provider'));
+  assert(providerId, Errors.ERR_IS_REQUIRED('providerId'));
+
   const profile = await Profile.findOne({
     where: {
+      provider,
       providerId
     }
   });
@@ -40,20 +44,8 @@ exports.getByMixinAccountId = async mixinAccountId => {
   return profile ? profile.toJSON() : null;
 }
 
-exports.isExist = async (providerId, options = {}) => {
-  const {
-    provider
-  } = options;
-  assert(provider, Errors.ERR_IS_REQUIRED('provider'));
-  assert(providerId, Errors.ERR_IS_REQUIRED('providerId'));
-
-  const profile = await Profile.findOne({
-    where: {
-      provider,
-      providerId
-    }
-  });
-  return !!profile;
+exports.isExist = async (provider, providerId) => {
+  return !!await exports.get(provider, providerId);
 }
 
 exports.createProfile = async (data = {}) => {
@@ -81,4 +73,22 @@ exports.createProfile = async (data = {}) => {
     raw: profile.raw
   })
   return insertedProfile.toJSON();
+}
+
+exports.update = async (userId, data) => {
+  assert(userId, Errors.ERR_IS_REQUIRED('userId'));
+  assert(data, Errors.ERR_IS_REQUIRED('data'));
+  attempt(data, {
+    name: Joi.string().required(),
+    avatar: Joi.string().required(),
+  });
+  await Profile.update({
+    name: data.name,
+    avatar: data.avatar,
+  }, {
+    where: {
+      userId
+    }
+  })
+  return true;
 }

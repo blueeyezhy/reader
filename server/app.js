@@ -19,6 +19,7 @@ const comment = require('./routes/comment');
 const vote = require('./routes/vote');
 const settings = require('./routes/settings');
 const subscription = require('./routes/subscription');
+const conversation = require('./routes/conversation');
 const logout = require('./routes/logout');
 const autoLogin = require('./routes/autoLogin');
 const ping = require('./routes/ping');
@@ -29,7 +30,9 @@ const prepare = require('./prepare');
 
 const {
   ensureAuthorization,
-} = require('./models/api');
+  errorHandler,
+  extendCtx
+} = require('./middleware/api');
 
 if (process.env.NODE_ENV === 'production') {
   prepare.initStatic();
@@ -51,12 +54,15 @@ const passport = models.auth.buildPassport();
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(views(__dirname + '/build'));
-app.use(serve('build', {
-  maxage: 365 * 24 * 60 * 60,
-}));
 
-router.all('*', models.api.errorHandler);
-router.all('*', models.api.extendCtx);
+const serveOptions = {};
+if (!config.staticCDN) {
+  serveOptions.maxage = 365 * 24 * 60 * 60;
+}
+app.use(serve('build', serveOptions));
+
+router.all('*', errorHandler);
+router.all('*', extendCtx);
 
 router.use('/api/user', ensureAuthorization(), user.routes(), user.allowedMethods());
 router.use('/api/auth', auth.routes(), auth.allowedMethods());
@@ -69,6 +75,7 @@ router.use('/api/settings', ensureAuthorization({
   strict: false
 }), settings.routes(), settings.allowedMethods());
 router.use('/api/subscriptions', ensureAuthorization(), subscription.routes(), subscription.allowedMethods());
+router.use('/api/conversations', conversation.routes(), conversation.allowedMethods());
 router.use('/api/logout', ensureAuthorization({
   strict: false
 }), logout.routes(), logout.allowedMethods());

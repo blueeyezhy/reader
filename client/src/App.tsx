@@ -13,6 +13,7 @@ import LoginModal from 'components/LoginModal';
 import WalletModal from 'components/WalletModal';
 import NotificationModal from 'components/NotificationModal';
 import SnackBar from 'components/SnackBar';
+import PageLoading from './components/PageLoading';
 
 import { isIPhone } from 'utils';
 
@@ -39,6 +40,7 @@ const AppRouter = () => {
           <WalletModal />
           <SnackBar />
           <NotificationModal />
+          <PageLoading />
           <style jsx global>{`
             body {
               min-height: ${isIPhone ? '110vh' : '100vh'};

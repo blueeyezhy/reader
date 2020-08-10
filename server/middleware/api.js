@@ -1,12 +1,13 @@
 const httpStatus = require('http-status');
 const config = require('../config');
-const Token = require('./token');
+const Token = require('../models/token');
 const {
   assert,
   Errors,
   throws,
 } = require('../models/validator');
 const User = require('../models/user');
+const Cache = require('../models/cache');
 
 exports.ensureAuthorization = (options = {}) => {
   const {
@@ -47,11 +48,16 @@ exports.ensureAuthorization = (options = {}) => {
         userId
       }
     } = decodedToken;
+    assert(userId, Errors.ERR_NOT_FOUND('userId'));
     const user = await User.get(userId, {
-      withProfile: true
+      withProfile: true,
     });
     ctx.verification.user = user;
     assert(user, Errors.ERR_NOT_FOUND('user'));
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      ctx.headers['user-agent'],
+    );
+    await Cache.pSet('USER_DEVICE', String(userId), isMobile ? 'MOBILE' : 'PC');
     await next();
   }
 }
@@ -60,7 +66,9 @@ exports.errorHandler = async (ctx, next) => {
   try {
     await next();
   } catch (err) {
-    console.log(err);
+    if (err.status != 404) {
+      console.log(err);
+    }
     if (
       err.status &&
       err.status >= httpStatus.BAD_REQUEST &&
@@ -105,28 +113,4 @@ exports.extendCtx = async (ctx, next) => {
     return ctx.verification.user.accountType;
   };
   await next();
-};
-
-exports.checkPermission = async (provider, profile) => {
-  const {
-    providerId
-  } = profile;
-  const whitelist = config.auth.whitelist[provider];
-  const isInWhiteList = whitelist && [provider].includes(~~providerId);
-  if (isInWhiteList) {
-    return true;
-  }
-  const hasProviderPermission = await providerPermissionChecker[provider](profile);
-  return hasProviderPermission;
-}
-
-const providerPermissionChecker = {
-  mixin: async profile => {
-    // can check mixin permission
-    return true;
-  },
-  github: async profile => {
-    // can check github permission
-    return true;
-  }
 };

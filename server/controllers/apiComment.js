@@ -4,13 +4,17 @@ const Log = require('../models/log');
 const request = require('request-promise');
 const Mixin = require('../models/mixin');
 const {
+  truncate
+} = require('../utils');
+const {
   assert,
   Errors
 } = require('../models/validator');
 
 exports.create = async ctx => {
-  const userId = ctx.verification.user.id;
-  const userName = ctx.verification.user.name;
+  const {
+    user
+  } = ctx.verification;
   const data = ctx.request.body.payload;
   const {
     options = {}
@@ -20,33 +24,40 @@ exports.create = async ctx => {
   } = options;
   delete data.options;
   assert(data, Errors.ERR_IS_REQUIRED('data'));
-  const comment = await Comment.create(userId, data);
+  const comment = await Comment.create(user.id, data);
   const postPath = `/posts/${data.objectId}?commentId=${comment.id}`;
   try {
-    await request({
-      uri: `${config.settings['pub.site.url']}/api/notify`,
-      method: 'POST',
-      json: true,
-      body: {
-        payload: {
-          rId: data.objectId,
-          commentUser: userName,
-          redirect: postPath
+    if (mentionsUserIds.length === 0) {
+      await request({
+        uri: `${config.settings['pub.site.url']}/api/notify`,
+        method: 'POST',
+        json: true,
+        body: {
+          payload: {
+            type: 'comment',
+            rId: data.objectId,
+            provider: user.provider,
+            providerId: user.providerId,
+            redirect: postPath,
+            options: {
+              fromUser: user.name,
+            }
+          }
         }
-      }
-    }).promise();
+      }).promise();
+    }
     while (mentionsUserIds.length > 0) {
       const mentionsUserId = mentionsUserIds.shift();
       await Mixin.pushToNotifyQueue({
         userId: mentionsUserId,
-        text: `${userName}回复了你的评论`,
+        text: `${truncate(user.name)} 刚刚回复了你的评论`,
         url: `${config.serviceRoot}${postPath}`
       });
     }
   } catch (e) {
     console.log(e);
   }
-  Log.create(userId, `评论文章 ${config.serviceRoot}${postPath}`);
+  Log.create(user.id, `评论文章 ${config.serviceRoot}${postPath}`);
   ctx.body = comment;
 }
 

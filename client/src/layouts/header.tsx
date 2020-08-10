@@ -7,7 +7,6 @@ import MenuItem from '@material-ui/core/MenuItem';
 import People from '@material-ui/icons/People';
 import AccountBalanceWallet from '@material-ui/icons/AccountBalanceWallet';
 import NotificationsOutlined from '@material-ui/icons/NotificationsOutlined';
-import Edit from '@material-ui/icons/Edit';
 import AccountCircle from '@material-ui/icons/AccountCircle';
 import ArrowBackIos from '@material-ui/icons/ArrowBackIos';
 import ExitToApp from '@material-ui/icons/ExitToApp';
@@ -17,15 +16,7 @@ import Drawer from '@material-ui/core/Drawer';
 import Badge from '@material-ui/core/Badge';
 import { Link } from 'react-router-dom';
 import { useStore } from 'store';
-import {
-  getApiEndpoint,
-  getLoginUrl,
-  isMobile,
-  isWeChat,
-  sleep,
-  stopBodyScroll,
-  isPc,
-} from 'utils';
+import { getApiEndpoint, isMobile, sleep, stopBodyScroll, isPc } from 'utils';
 
 export default observer((props: any) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -34,6 +25,7 @@ export default observer((props: any) => {
   const { preloadStore, userStore, modalStore, pathStore, settingsStore } = useStore();
   const { settings } = settingsStore;
   const { pushPath, prevPath } = pathStore;
+  const { user, isLogin } = userStore;
   const { pathname } = props.location;
 
   const handleClose = () => setAnchorEl(null);
@@ -44,7 +36,7 @@ export default observer((props: any) => {
   }, [pathname, pushPath]);
 
   if (!preloadStore.ready) {
-    return isMobile ? <div className="h-12" /> : null;
+    return isMobile ? <div className="h-12" /> : <div style={{ height: 45 }} />;
   }
 
   const logoutUrl = `${getApiEndpoint()}/api/logout?from=${window.location.origin}`;
@@ -78,11 +70,7 @@ export default observer((props: any) => {
                   setOpenDrawer(false);
                   stopBodyScroll(false);
                   await sleep(200);
-                  if (isWeChat) {
-                    modalStore.openLogin();
-                  } else {
-                    window.location.href = getLoginUrl();
-                  }
+                  modalStore.openLogin();
                 }}
               >
                 登录
@@ -91,16 +79,6 @@ export default observer((props: any) => {
           )}
           {userStore.isLogin && (
             <div>
-              <MenuItem
-                onClick={async () => {
-                  setOpenDrawer(false);
-                  stopBodyScroll(false);
-                  await sleep(200);
-                  props.history.push('/subscriptions');
-                }}
-              >
-                我的关注
-              </MenuItem>
               {settings['pub.site.url'] && (
                 <MenuItem
                   onClick={async () => {
@@ -118,12 +96,22 @@ export default observer((props: any) => {
                   setOpenDrawer(false);
                   stopBodyScroll(false);
                   await sleep(200);
+                  props.history.push('/subscriptions');
+                }}
+              >
+                我的关注
+              </MenuItem>
+              <MenuItem
+                onClick={async () => {
+                  setOpenDrawer(false);
+                  stopBodyScroll(false);
+                  await sleep(200);
                   modalStore.openWallet({
                     tab: 'assets',
                   });
                 }}
               >
-                我的资产
+                我的余额
               </MenuItem>
               <MenuItem
                 onClick={async () => {
@@ -185,12 +173,7 @@ export default observer((props: any) => {
       >
         {!userStore.isLogin && (
           <div>
-            <div
-              onClick={() => {
-                handleClose();
-                modalStore.openLogin();
-              }}
-            >
+            <div>
               <MenuItem className="text-gray-700">
                 <div className="py-1 flex items-center">
                   <span className="flex items-center text-xl mr-2">
@@ -255,27 +238,10 @@ export default observer((props: any) => {
                   <span className="flex items-center text-xl mr-2">
                     <AccountBalanceWallet />
                   </span>{' '}
-                  我的钱包
+                  打赏钱包
                 </div>
               </MenuItem>
             </div>
-            {settings['pub.site.url'] && (
-              <div
-                onClick={() => {
-                  handleClose();
-                  window.open(settings['pub.site.url']);
-                }}
-              >
-                <MenuItem className="text-gray-700">
-                  <div className="py-1 flex items-center">
-                    <span className="flex items-center text-xl mr-2">
-                      <Edit />
-                    </span>{' '}
-                    写文章
-                  </div>
-                </MenuItem>
-              </div>
-            )}
             {settings['menu.links'].map((link: any) => {
               return (
                 <div
@@ -316,7 +282,7 @@ export default observer((props: any) => {
 
   return (
     <Fade in={true} timeout={isMobile ? 500 : 1500}>
-      <div className="container m-auto">
+      <div>
         <div className="md:hidden">
           <div className="flex justify-between items-center py-1 px-3 border-t border-b border-gray-300 h-12">
             {!showBack && (
@@ -371,29 +337,75 @@ export default observer((props: any) => {
           {isMobile && mobileMenuView()}
         </div>
         {isPc && (
-          <div className="w-7/12 m-auto relative">
-            <div className="flex items-center absolute top-0 right-0 text-xl mt-6 pt-2 -mr-20 z-50">
-              {settings['notification.enabled'] && !userStore.user.notificationEnabled && (
-                <Badge
-                  badgeContent={1}
-                  className="px-2 text-2xl text-gray-700 mr-8 cursor-pointer"
-                  color="error"
-                  variant="dot"
-                  invisible={false}
-                  onClick={() => {
-                    modalStore.openNotification();
-                  }}
-                >
-                  <NotificationsOutlined />
-                </Badge>
-              )}
-              <IconButton onClick={(event: any) => setAnchorEl(event.currentTarget)}>
-                <MenuIcon />
-              </IconButton>
-              {pcMenuView()}
+          <div className="py-1 border-b border-gray-300">
+            <div className="container mx-auto">
+              <div className="w-7/12 mx-auto flex justify-between items-center">
+                <Link to="/">
+                  <div className="flex items-center -ml-2">
+                    <img
+                      src="https://xue-images.pek3b.qingstor.com/1111-fly-pub.png"
+                      alt="logo"
+                      width="36"
+                      height="36"
+                    />
+                    <span className="text-lg font-bold text-gray-700 ml-2">飞帖</span>
+                  </div>
+                </Link>
+                {!userStore.isLogin && (
+                  <div
+                    className="text-sm py-1 px-3 bg-blue-400 text-white rounded font-bold outline-none leading-normal cursor-pointer"
+                    onClick={() => {
+                      handleClose();
+                      modalStore.openLogin();
+                    }}
+                  >
+                    登录
+                  </div>
+                )}
+                {userStore.isLogin && pathname !== '/permissionDeny' && (
+                  <div className="flex items-center -mr-2">
+                    {settings['pub.site.url'] && (
+                      <a
+                        href={settings['pub.site.url']}
+                        className="mr-4 text-sm py-1 px-3 bg-blue-400 text-white rounded font-bold outline-none leading-normal"
+                      >
+                        写文章
+                      </a>
+                    )}
+                    {settings['notification.enabled'] && !userStore.user.notificationEnabled && (
+                      <Badge
+                        badgeContent={1}
+                        className="px-2 text-2xl text-gray-700 mr-4 cursor-pointer"
+                        color="error"
+                        variant="dot"
+                        invisible={false}
+                        onClick={() => {
+                          modalStore.openNotification();
+                        }}
+                      >
+                        <NotificationsOutlined />
+                      </Badge>
+                    )}
+                    {isLogin && (
+                      <div className="flex items-center pl-1 mr-3">
+                        <img src={user.avatar} className="w-8 h-8 rounded-full" alt="头像" />
+                      </div>
+                    )}
+                    <IconButton onClick={(event: any) => setAnchorEl(event.currentTarget)}>
+                      <MenuIcon />
+                    </IconButton>
+                    {pcMenuView()}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
+        <style jsx global>{`
+          .MuiIconButton-root {
+            padding: 6px;
+          }
+        `}</style>
       </div>
     </Fade>
   );

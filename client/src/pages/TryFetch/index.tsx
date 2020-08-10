@@ -2,7 +2,7 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { useStore } from 'store';
 import ConfirmDialog from 'components/ConfirmDialog';
-import { sleep, isMobile, isWeChat } from 'utils';
+import { sleep, isMobile, isWeChat, getQuery, removeQuery, isProduction } from 'utils';
 import Api from 'api';
 
 export default observer((props: any) => {
@@ -53,10 +53,21 @@ export default observer((props: any) => {
         const user = await Api.fetchUser();
         userStore.setUser(user);
         socketStore.init(user.id);
+
+        // 提前请求 pub 的 user 接口，创建 pub 用户，减少进入 pub 时等待的时间
+        if (isProduction && settings['SSO.enabled']) {
+          setTimeout(() => {
+            Api.tryInitPubUser(`${settings['pub.site.url']}`);
+          }, 2000);
+        }
       } catch (err) {
         if (settings['permission.isPrivate']) {
           setShowConfirmDialog(true);
           return false;
+        } else if (getQuery('action') === 'login') {
+          await sleep(500);
+          modalStore.openLogin();
+          removeQuery('action');
         }
         if (isMobile && !isWeChat) {
           const { url } = await Api.getAutoLoginUrl();
@@ -78,7 +89,7 @@ export default observer((props: any) => {
       }
       await sleep(200);
     })();
-  }, [userStore, feedStore, preloadStore, socketStore, settingsStore, props]);
+  }, [userStore, feedStore, preloadStore, socketStore, settingsStore, modalStore, props]);
 
   return (
     <div>
