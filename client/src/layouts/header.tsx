@@ -85,7 +85,7 @@ export default observer((props: any) => {
                     setOpenDrawer(false);
                     stopBodyScroll(false);
                     await sleep(200);
-                    window.location.href = settings['pub.site.url'];
+                    window.location.href = settings['pub.site.url'][0];
                   }}
                 >
                   写文章
