@@ -362,15 +362,26 @@ export default observer((props: any) => {
                     登录
                   </div>
                 )}
-                {userStore.isLogin && pathname !== '/permissionDeny' && (
+                {/* {userStore.isLogin && pathname !== '/permissionDeny' && ( */}
+                {pathname !== '/permissionDeny' && (                    
                   <div className="flex items-center -mr-2">
                     {settings['pub.site.url'] && (
-                      <a
-                        href={settings['pub.site.url']}
-                        className="mr-4 text-sm py-1 px-3 bg-blue-400 text-white rounded font-bold outline-none leading-normal"
-                      >
-                        写文章
-                      </a>
+                    <div
+                      className="mr-4 text-sm py-1 px-3 bg-blue-400 text-white rounded font-bold outline-none leading-normal"
+                      onClick={() => {
+                        handleClose();
+                        modalStore.showPubUrls();
+                      }}                    
+                    >
+                      写文章
+                    </div>
+
+                    //   <a
+                    //     href={settings['pub.site.url']}
+                    //     className="mr-4 text-sm py-1 px-3 bg-blue-400 text-white rounded font-bold outline-none leading-normal"
+                    //   >
+                    //     写文章
+                    //   </a>
                     )}
                     {settings['notification.enabled'] && !userStore.user.notificationEnabled && (
                       <Badge

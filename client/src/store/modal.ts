@@ -16,6 +16,22 @@ export function createModalStore() {
       open: false,
       data: {},
     },
+    pubUrls: {
+      open: false,
+      data: {},
+    },
+
+    showPubUrls(data: any = {}) {
+        this.pubUrls.open = true;
+        this.pubUrls.data = data;
+        stopBodyScroll(true);
+    },
+    closePubUrls() {
+        this.pubUrls.open = false;
+        this.pubUrls.data = {};
+        stopBodyScroll(false);
+    },
+    
     openLogin(data: any = {}) {
       if (isMobile) {
         this.showPageLoading = true;

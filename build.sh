@@ -4,6 +4,6 @@ yarn install && yarn build || { exit 1; }
 
 cd ../
 
-IMAGE_NAME="reader"
+IMAGE_NAME="aggre_reader"
 
 docker build -t $IMAGE_NAME .

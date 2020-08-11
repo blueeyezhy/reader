@@ -5,6 +5,7 @@ server/yarn-debug.log*
 server/yarn-error.log*
 
 server/config.js
+server/config.wallet.js
 
 # dependencies
 client/node_modules
