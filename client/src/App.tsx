@@ -10,7 +10,7 @@ import TryFetch from './pages/TryFetch';
 import PermissionDeny from './pages/PermissionDeny';
 
 import LoginModal from 'components/LoginModal';
-import PubUrls from 'components/PubUrls';
+import PubUrls from 'components/pubUrls';
 import WalletModal from 'components/WalletModal';
 import NotificationModal from 'components/NotificationModal';
 import SnackBar from 'components/SnackBar';
