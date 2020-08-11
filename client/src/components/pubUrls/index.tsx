@@ -3,10 +3,10 @@ import { observer } from 'mobx-react-lite';
 import DrawerModal from 'components/DrawerModal';
 import Modal from 'components/Modal';
 import { isMobile } from 'utils';
-import { useStore , settingsStore } from 'store';
+import { useStore } from 'store';
 
 export default observer(() => {
-  const { modalStore } = useStore();
+  const { modalStore , settingsStore} = useStore();
   const { settings } = settingsStore;
   const pc_pub_urls = settings['pub.site.url'];
   const pc_listUrls = pc_pub_urls.map((pc_pub_urls) =>
