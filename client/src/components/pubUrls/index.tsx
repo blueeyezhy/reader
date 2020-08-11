@@ -9,8 +9,8 @@ export default observer(() => {
   const { modalStore , settingsStore} = useStore();
   const { settings } = settingsStore;
   const pc_pub_urls = settings['pub.site.url'];
-  const pc_listUrls = pc_pub_urls.map(pc_pub_urls) =>
-      <li><a href={pc_pub_urls}>{pc_pub_urls}</a></li>
+  const pc_listUrls = pc_pub_urls.map( (pc_pub_url) =>
+      <li><a href={pc_pub_url}>{pc_pub_url}</a></li>
   );
 
   const renderMain = () => {
