@@ -6,7 +6,7 @@ import { isMobile } from 'utils';
 import { useStore } from 'store';
 
 export default observer(() => {
-  const { modalStore, settingsStore } = useStore();
+  const { modalStore , settingsStore } = useStore();
   const { settings } = settingsStore;
 
   const renderMain = () => {

@@ -6,7 +6,7 @@ import { isMobile } from 'utils';
 import { useStore } from 'store';
 
 export default observer(() => {
-  const { modalStore , settingsStore} = useStore();
+  const { modalStore , settingsStore } = useStore();
   const { settings } = settingsStore;
   const pc_pub_urls = settings['pub.site.url'];
   const pc_listUrls = pc_pub_urls.map( (pc_pub_url: any = {}) =>
@@ -18,9 +18,7 @@ export default observer(() => {
       <div>
         <div className="p-8 bg-white md:rounded text-center main">
           <div className="text-lg font-bold text-gray-700 leading-none">写作站点链接</div>
-          <div className="mt-4 text-gray-700">
-            {pc_listUrls}
-          </div>
+          <div className="mt-4 text-gray-700">{pc_listUrls}</div>
         </div>
       </div>
     );
