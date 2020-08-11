@@ -10,6 +10,7 @@ import TryFetch from './pages/TryFetch';
 import PermissionDeny from './pages/PermissionDeny';
 
 import LoginModal from 'components/LoginModal';
+import PubUrls from 'components/PubUrls';
 import WalletModal from 'components/WalletModal';
 import NotificationModal from 'components/NotificationModal';
 import SnackBar from 'components/SnackBar';
@@ -37,6 +38,7 @@ const AppRouter = () => {
             <Route path="/permissionDeny" exact component={PermissionDeny} />
           </div>
           <LoginModal />
+          <PubUrls />
           <WalletModal />
           <SnackBar />
           <NotificationModal />

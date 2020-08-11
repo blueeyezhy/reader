@@ -367,21 +367,13 @@ export default observer((props: any) => {
                   <div className="flex items-center -mr-2">
                     {settings['pub.site.url'] && (
                     <div
-                      className="mr-4 text-sm py-1 px-3 bg-blue-400 text-white rounded font-bold outline-none leading-normal"
+                      className="text-sm py-1 px-3 bg-blue-400 text-white rounded font-bold outline-none leading-normal cursor-pointer"
                       onClick={() => {
-                        handleClose();
                         modalStore.showPubUrls();
                       }}                    
                     >
                       写文章
                     </div>
-
-                    //   <a
-                    //     href={settings['pub.site.url']}
-                    //     className="mr-4 text-sm py-1 px-3 bg-blue-400 text-white rounded font-bold outline-none leading-normal"
-                    //   >
-                    //     写文章
-                    //   </a>
                     )}
                     {settings['notification.enabled'] && !userStore.user.notificationEnabled && (
                       <Badge
