@@ -11,7 +11,7 @@ export default observer(() => {
   var pc_listUrls:string[]; 
   if (settings['pub.site.url']) {
         pc_listUrls = settings['pub.site.url'].map( (pc_pub_url: string) =>
-        <li><a href={pc_pub_url}>{pc_pub_url}</a></li>
+        <li><a href={pc_pub_url[1]}>{pc_pub_url[0]}: {pc_pub_url[1]}</a></li>
     );
   }
 

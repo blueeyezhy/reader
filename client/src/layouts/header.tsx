@@ -362,8 +362,7 @@ export default observer((props: any) => {
                     登录
                   </div>
                 )}
-                {userStore.isLogin && pathname !== '/permissionDeny' && (
-                // {!userStore.isLogin && (                    
+                {userStore.isLogin && pathname !== '/permissionDeny' && (                 
                   <div className="flex items-center -mr-2">
                     {settings['pub.site.url'] && (
                     <div
